@@ -1,0 +1,50 @@
+import pandas as pd
+import requests
+import json
+import nltk
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+from collections import Counter
+%load_ext google.colab.data_table
+
+#Get the Knowledge graph API and upload the query csv
+#To help yourself: https://developers.google.com/knowledge-graph/how-tos/authorizing
+
+apikey= "###"
+df = pd.read_csv("copy-and-paste-the-path-of-the-document-in-colab.csv")
+total_queries = len(df.index)
+query_list = df['Top queries'].tolist()
+
+#Set up intent words [custom refers to Navigational]
+informative = ['what','who','when','where','which','why','how', 'ideas', 'tutorial','guide']
+transactional = ['buy','order','purchase','cheap','price','discount','shop','sale','offer']
+commercial = ['best','top','review','comparison','compare','vs','versus','ultimate']
+custom = ['Brand variation 1', 'Brand variation 2', 'Brand variation 3']
+
+#Create the dataframe
+info_filter = df[df['Top queries'].str.contains('|'.join(informative))]
+trans_filter = df[df['Top queries'].str.contains('|'.join(transactional))]
+comm_filter = df[df['Top queries'].str.contains('|'.join(commercial))]
+custom_filter = df[df['Top queries'].str.contains('|'.join(custom))]
+
+#See the number of queries and how many of each intent are there
+
+info_filter['Intent'] = "Informational"
+trans_filter['Intent'] = "Transactional"
+comm_filter['Intent'] = "Commercial"
+custom_filter['Intent'] = "Custom"
+info_count = len(info_filter)
+trans_count = len(trans_filter)
+comm_count = len(comm_filter)
+custom_count = len(custom_filter)
+print("Total: " + str(total_queries))
+print("Info: " + str(info_count) + " | " + str(round((info_count/total_queries)*100,1)) + "%")
+print("Trans: " + str(trans_count) + " | " + str(round((trans_count/total_queries)*100,1)) + "%")
+print("Comm: " + str(comm_count) + " | " + str(round((comm_count/total_queries)*100,1)) + "%")
+print("Custom: " + str(custom_count) + " | " + str(round((custom_count/total_queries)*100,1)) + "%")
+
+#Get the table
+df_intents = pd.concat([info_filter,trans_filter,comm_filter,custom_filter]).sort_values('Clicks', ascending=False)
+df_intents = df_intents.drop_duplicates(subset='Top queries', keep="first")
+df_intents = df_intents[ ['Top queries'] + ['Clicks'] + ['Impressions'] + ['Intent'] + ['CTR'] + ['Position'] ]
+df_intents
